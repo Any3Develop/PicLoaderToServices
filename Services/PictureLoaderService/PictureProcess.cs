@@ -22,7 +22,7 @@ namespace Services.PictureLoaderService
         private Action<Texture2D> intoAction;
         private Action placeHolderAction;
         private Texture2D processTexture;
-        private Action completeAction;
+        private Action<Texture2D> completeAction;
         
         public PictureProcess(IPreloaderService<Texture2D> preloaderService, string targetUrl)
         {
@@ -55,7 +55,7 @@ namespace Services.PictureLoaderService
             });
             
             intoAction += action;
-            placeHolderAction += () => action.Invoke(processTexture);
+            placeHolderAction += action;
             return this;
         }
 
@@ -67,7 +67,7 @@ namespace Services.PictureLoaderService
                 placeHolder.material.mainTexture = result;
             });
             intoAction += action;
-            placeHolderAction += () => action.Invoke(processTexture);
+            placeHolderAction += action;
             return this;
         }
 
@@ -79,7 +79,7 @@ namespace Services.PictureLoaderService
                 placeHolder.material.mainTexture = result;
             });
             intoAction += action;
-            placeHolderAction += () => action.Invoke(processTexture);
+            placeHolderAction += action;
             return this;
         }
         
@@ -107,7 +107,7 @@ namespace Services.PictureLoaderService
         {
             if (processTexture)
             {
-                placeHolderAction?.Invoke();
+                placeHolderAction?.Invoke(processTexture);
             }
             animations.ForEach(x=>x.Play());
 
