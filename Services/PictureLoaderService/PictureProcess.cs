@@ -20,9 +20,9 @@ namespace Services.PictureLoaderService
         private readonly List<IAnimation> animations;
         private readonly string targetUrl;
         private Action<Texture2D> intoAction;
-        private Action placeHolderAction;
+        private Action<Texture2D> placeHolderAction;
         private Texture2D processTexture;
-        private Action<Texture2D> completeAction;
+        private Action completeAction;
         
         public PictureProcess(IPreloaderService<Texture2D> preloaderService, string targetUrl)
         {
