@@ -21,17 +21,16 @@ namespace Services.PictureLoaderService
         public static async Task Setup(IEnumerable<string> pictureUrls = null)
         {
             if (initialized)
-            {
                 return;
-            }
 
             pictureUrls = pictureUrls ?? new string[0];
             var cachePath = Application.persistentDataPath + "/" + "PictureCache" + "/";
             var cacheService = new LocalCacheService(cachePath, new MD5HashGenerator());
             preloaderService = new TexturePreloaderService(pictureUrls, cacheService, cacheService);
             processes = new Dictionary<string, PictureProcess>();
-            initialized = true;
+
             await preloaderService.Preload();
+            initialized = true;
         }
         
         /// <summary>
@@ -42,25 +41,25 @@ namespace Services.PictureLoaderService
         /// <returns></returns>
         public static PictureProcess GetProcess(string url, bool cached = true)
         {
-	        if (!initialized)
-	        {
-		        Debug.LogError("Picture Loader not initialized");
-		        return default;
-	        }
+	    if (!initialized)
+            {
+                Debug.LogError("Picture Loader not initialized");
+                return default;
+            }
 	        
-	        if (processes.ContainsKey(url))
-	        {
-		        var currProcess = processes[url];
-		        if (!currProcess.Disposed)
-			        return currProcess.GetLayerProcess(forcibly: true);
+            if (processes.ContainsKey(url))
+            {
+                var currProcess = processes[url];
+                if (!currProcess.Disposed)
+			return currProcess.GetLayerProcess(forcibly: true);
 
-			if(currProcess.Disposed)
-				processes.Remove(url);
-	        }
-	        
-	        var process = new PictureProcess(url, cached, preloaderService);
-	        processes.Add(url, process.OnDispose(() => processes.Remove(url)));
-	        return process;
+		if(currProcess.Disposed)
+			processes.Remove(url);
+	    }
+	    
+	    var process = new PictureProcess(url, cached, preloaderService);
+	    processes.Add(url, process.OnDispose(() => processes.Remove(url)));
+	    return process;
         }
     }
 }
