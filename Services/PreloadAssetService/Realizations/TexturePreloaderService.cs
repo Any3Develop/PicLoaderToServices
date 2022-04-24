@@ -174,7 +174,6 @@ namespace Services.PreloadAssetService
             {
                 Debug.LogError($"Texture does not created from raw data : {url}");
             }
-
             return texture;
         }
     }

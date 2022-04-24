@@ -7,112 +7,94 @@ namespace Services.PictureLoaderService
 {
     public class AnimationYoYo : IAnimation
     {
-        private readonly float duration;
-        private readonly float fromAlpha;
-        private readonly float toAlpha;
-        private Action<float> animationAction;
-        private Action cancelAction;
-
-        public AnimationYoYo(float duration = 1f,
-                             float fromAlpha = 0.5f,
-                             float toAlpha = 0.8f)
+        private float duration;
+        private float fromAlpha;
+        private float toAlpha;
+        private float restoreAlpha;
+        private Action<float> intoAction;
+        private Action<float> disposeAction;
+        
+        public AnimationYoYo(MaskableGraphic placeHolder)
         {
-            this.duration = duration;
-            this.fromAlpha = fromAlpha;
-            this.toAlpha = toAlpha;
+	        if (!placeHolder)
+	        {
+		        Debug.LogError("PlaceHolder is missing");
+		        return;
+	        }
+
+	        restoreAlpha = placeHolder.color.a;
+	        void SetInto(float result)
+	        {
+		        if (!placeHolder || disposeAction == null) return;
+		        
+		        placeHolder.color = SetAlpha(placeHolder.color, result);
+	        }
+
+	        intoAction += SetInto;
+	        disposeAction += SetInto;
+        }
+        
+        public AnimationYoYo(Material placeHolder)
+        {
+	        if (!placeHolder)
+	        {
+		        Debug.LogError("PlaceHolder is missing");
+		        return;
+	        }
+
+	        if (!placeHolder.HasProperty("_Color"))
+	        {
+		        Debug.LogError("PlaceHolder does no contains Shader param [_Color]");
+		        return;
+	        }
+	        
+	        restoreAlpha = placeHolder.color.a;
+	        void SetInto(float result)
+	        {
+		        if (!placeHolder || disposeAction == null) return;
+		        
+		        placeHolder.color = SetAlpha(placeHolder.color, result);
+	        }
+
+	        intoAction += SetInto;
+	        disposeAction += SetInto;
         }
 
-        public AnimationYoYo Into(Image placeHolder)
+        public AnimationYoYo Setup(float duration = 1f, 
+                                   float fromAlpha = 0.5f, 
+                                   float toAlpha = 0.8f, 
+                                   float? restoreAlpha = null)
         {
-            if (!placeHolder)
-                return this;
-
-            var restoreAlpha = placeHolder.color.a;
-            animationAction += currentAlpha =>
-            {
-                if (!placeHolder)
-                    return;
-
-                placeHolder.color = SetAlpha(placeHolder.color, currentAlpha);
-            };
-            cancelAction += () =>
-            {
-                if (!placeHolder)
-                    return;
-                placeHolder.color = SetAlpha(placeHolder.color, restoreAlpha);
-            };
-            return this;
-        }
-
-        public AnimationYoYo Into(RawImage placeHolder)
-        {
-            if (!placeHolder)
-                return this;
-
-            var restoreAlpha = placeHolder.color.a;
-
-            animationAction += currentAlpha =>
-            {
-                if (!placeHolder)
-                    return;
-
-                placeHolder.color = SetAlpha(placeHolder.color, currentAlpha);
-            };
-            cancelAction += () =>
-            {
-                if (!placeHolder)
-                    return;
-                placeHolder.color = SetAlpha(placeHolder.color, restoreAlpha);
-            };
-            return this;
-        }
-
-        public AnimationYoYo Into(Renderer placeHolder)
-        {
-            if (!placeHolder)
-                return this;
-            var material = placeHolder.material;
-            if (!material.HasProperty("_Color"))
-                return this;
-            var restoreAlpha = material.color.a;
-            animationAction += currentAlpha =>
-            {
-                if (!material)
-                    return;
-                material.color = SetAlpha(material.color, currentAlpha);
-            };
-            cancelAction += () =>
-            {
-                if (!material)
-                    return;
-                material.color = SetAlpha(material.color, restoreAlpha);
-            };
-            return this;
+	        this.duration = duration;
+	        this.fromAlpha = fromAlpha;
+	        this.toAlpha = toAlpha;
+	        this.restoreAlpha = restoreAlpha ?? this.restoreAlpha;
+	        return this;
         }
 
         public async void Play()
         {
-            while (cancelAction != null)
+            while (disposeAction != null)
             {
-                animationAction?.Invoke(Mathf.Lerp(fromAlpha, toAlpha, Mathf.PingPong((Time.time) / duration, 1f)));
+                intoAction?.Invoke(Mathf.Lerp(fromAlpha, toAlpha, Mathf.PingPong((Time.time) / duration, 1f)));
                 await Task.Yield();
             }
         }
 
         public void Dispose()
         {
-            if (cancelAction == null)
+            if (disposeAction == null)
                 return;
 
-            cancelAction?.Invoke();
-            animationAction = null;
-            cancelAction = null;
+            disposeAction?.Invoke(restoreAlpha);
+            disposeAction = null;
+            intoAction = null;
         }
 
-        private Color SetAlpha(Color other, float alpha)
+        private Color SetAlpha(Color value, float alpha)
         {
-            other.a = alpha;
-            return other;
+            value.a = alpha;
+            return value;
         }
     }
 }

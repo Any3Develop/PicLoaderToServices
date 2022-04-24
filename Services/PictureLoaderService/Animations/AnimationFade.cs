@@ -7,123 +7,101 @@ namespace Services.PictureLoaderService
 {
     public class AnimationFade : IAnimation
     {
-        private readonly float duration;
-        private readonly float fromAlpha;
-        private readonly float toAlpha;
-        private Action<float> animationAction;
-        private Action cancelAction;
-        private Action completeAction;
+	    private const float FLOAT_COMPARE_THRESHOLD = 0.01f;
+	    private float duration;
+        private float fromAlpha;
+        private float toAlpha;
+        private float endAlpha;
+        
+        private Action<float> intoAction;
+        private Action<float> disposeAction;
 
-        public AnimationFade(float duration = 1f,
-                             float fromAlpha = 0f,
-                             float toAlpha = 1f)
+        public AnimationFade(MaskableGraphic placeHolder)
         {
-            this.duration = duration;
-            this.fromAlpha = fromAlpha;
-            this.toAlpha = toAlpha;
+	        if (!placeHolder)
+	        {
+		        Debug.LogError("PlaceHolder is missing");
+		        return;
+	        }
+	        
+	        endAlpha = placeHolder.color.a;
+	        void SetInto(float result)
+	        {
+		        if (!placeHolder) return;
+		        
+		        placeHolder.color = SetAlpha(placeHolder.color, result);
+	        }
+	        
+	        intoAction += SetInto;
+	        disposeAction += SetInto;
+        }
+        
+        public AnimationFade(Material placeHolder)
+        {
+	        if (!placeHolder)
+	        {
+		        Debug.LogError("PlaceHolder is missing");
+		        return;
+	        }
+
+	        if (!placeHolder.HasProperty("_Color"))
+	        {
+		        Debug.LogError("PlaceHolder does no contains Shader param [_Color]");
+		        return;
+	        }
+	        
+	        endAlpha = placeHolder.color.a;
+	        void SetInto(float result)
+	        {
+		        if (!placeHolder) return;
+		        
+		        placeHolder.color = SetAlpha(placeHolder.color, result);
+	        }
+	        
+	        intoAction += SetInto;
+	        disposeAction += SetInto;
         }
 
-        public AnimationFade Into(Image placeHolder)
+        public AnimationFade Setup(float duration = 1f, 
+                                   float fromAlpha = 0f, 
+                                   float toAlpha = 1f, 
+                                   float? endAlpha = null)
         {
-            if (!placeHolder)
-                return this;
-
-            var restoreAlpha = placeHolder.color.a;
-            animationAction += currentAlpha =>
-            {
-                if (!placeHolder || cancelAction == null)
-                    return;
-
-                placeHolder.color = SetAlpha(placeHolder.color, currentAlpha);
-            };
-            cancelAction += () =>
-            {
-                if (!placeHolder)
-                    return;
-                placeHolder.color = SetAlpha(placeHolder.color, restoreAlpha);
-            };
-            return this;
+	        this.duration = duration;
+	        this.fromAlpha = fromAlpha;
+	        this.toAlpha = toAlpha;
+	        this.endAlpha = endAlpha ?? this.endAlpha;
+	        return this;
         }
-
-        public AnimationFade Into(RawImage placeHolder)
-        {
-            if (!placeHolder)
-                return this;
-
-            var restoreAlpha = placeHolder.color.a;
-
-            animationAction += currentAlpha =>
-            {
-                if (!placeHolder || cancelAction == null)
-                    return;
-
-                placeHolder.color = SetAlpha(placeHolder.color, currentAlpha);
-            };
-            cancelAction += () =>
-            {
-                if (!placeHolder)
-                    return;
-                placeHolder.color = SetAlpha(placeHolder.color, restoreAlpha);
-            };
-            return this;
-        }
-
-        public AnimationFade Into(Renderer placeHolder)
-        {
-            if (!placeHolder)
-                return this;
-            var material = placeHolder.material;
-            if (!material.HasProperty("_Color"))
-                return this;
-            var restoreAlpha = material.color.a;
-            animationAction += currentAlpha =>
-            {
-                if (!material || cancelAction == null)
-                    return;
-                material.color = SetAlpha(material.color, currentAlpha);
-            };
-            cancelAction += () =>
-            {
-                if (!material)
-                    return;
-                material.color = SetAlpha(material.color, restoreAlpha);
-            };
-            return this;
-        }
-
-        public AnimationFade OnComplete(Action onComplete)
-        {
-            completeAction = onComplete;
-            return this;
-        }
-
+        
         public async void Play()
         {
             var time = Time.time;
             var currentAlpha = fromAlpha;
-            while (cancelAction != null && currentAlpha < toAlpha)
+            while (disposeAction != null && Math.Abs(currentAlpha - toAlpha) < FLOAT_COMPARE_THRESHOLD)
             {
-                animationAction?.Invoke(currentAlpha = Mathf.Lerp(fromAlpha, toAlpha, (Time.time - time) / duration));
+                intoAction?.Invoke(currentAlpha = Mathf.Lerp(fromAlpha, toAlpha, (Time.time - time) / duration));
                 await Task.Yield();
             }
-            completeAction?.Invoke();
+
+            if (disposeAction != null)
+	            intoAction?.Invoke(toAlpha);
         }
 
         public void Dispose()
         {
-            if (cancelAction == null)
+            if (disposeAction == null)
                 return;
-
-            cancelAction?.Invoke();
-            animationAction = null;
-            cancelAction = null;
-            completeAction = null;
+            
+            disposeAction?.Invoke(endAlpha);
+            disposeAction = null;
+            intoAction = null;
         }
 
-        private Color SetAlpha(Color other, float alpha)
+        private Color SetAlpha(Color value, float alpha)
         {
-            other.a = alpha;
-            return other;
+            value.a = alpha;
+            return value;
         }
     }
 }

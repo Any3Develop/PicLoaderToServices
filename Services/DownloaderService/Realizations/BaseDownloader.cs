@@ -6,8 +6,8 @@ namespace Services.DownloaderService
 {
     public abstract class BaseDownloader<T> : IDownloader<T> where T : DownloadHandler
     {
-        protected int Timeout;
-        protected int TimeoutAttempts = 1;
+        protected int Timeout = 30;
+        protected int TimeoutAttempts = 3;
 
         public virtual async Task<T> Download(string url, CancellationToken token = default)
         {
@@ -31,19 +31,14 @@ namespace Services.DownloaderService
                 while (!request.isDone)
                 {
                     if (request.error != null || token.IsCancellationRequested)
-                    {
-                        request.Abort();
-                        return GetDownloadHandler();
-                    }
+	                    return GetDownloadHandler();
 
                     await Task.Yield();
                 }
             } while (!request.isDone || request.responseCode == 504 && attempts <= TimeoutAttempts);
 
             if (token.IsCancellationRequested)
-            {
-                return GetDownloadHandler();
-            }
+	            return GetDownloadHandler();
             
             return (T)request.downloadHandler;
         }
