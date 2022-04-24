@@ -54,8 +54,8 @@ namespace Services.PictureLoaderService
 		        if (!currProcess.Disposed)
 			        return currProcess.GetLayerProcess(forcibly: true);
 
-				if(currProcess.Disposed)
-					processes.Remove(url);
+			if(currProcess.Disposed)
+				processes.Remove(url);
 	        }
 	        
 	        var process = new PictureProcess(url, cached, preloaderService);
