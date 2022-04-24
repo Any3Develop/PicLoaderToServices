@@ -17,7 +17,7 @@ namespace Services.PictureLoaderService
 	/// 	.GetLayerProcess(forcibly) (call first, used automatically if head process by url alredy exist)
 	/// 	.Into(Image)
 	/// 	.Into(RawImage)
-	///		.Into(Renderer)
+	///	.Into(Renderer)
 	/// 	.Into(Renderer.Material) (no call restrictions, easy add another type place holders)
 	/// 	.SetWaitTexture(LoadingTexture) (no call restrictions, after Into)
 	/// 	.SetAnimation(Animation)
