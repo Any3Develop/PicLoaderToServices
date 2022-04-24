@@ -40,8 +40,8 @@ namespace Services.PictureLoaderService
         /// <param name="cached"></param>
         /// <returns></returns>
         public static PictureProcess GetProcess(string url, bool cached = true)
-        {
-	    if (!initialized)
+        { 
+            if (!initialized)
             {
                 Debug.LogError("Picture Loader not initialized");
                 return default;
@@ -50,16 +50,16 @@ namespace Services.PictureLoaderService
             if (processes.ContainsKey(url))
             {
                 var currProcess = processes[url];
-                if (!currProcess.Disposed)
-			return currProcess.GetLayerProcess(forcibly: true);
-
-		if(currProcess.Disposed)
-			processes.Remove(url);
-	    }
+                if (!currProcess.Disposed) 
+                    return currProcess.GetLayerProcess(forcibly: true);
+                
+                if(currProcess.Disposed) 
+                    processes.Remove(url);
+            }
 	    
-	    var process = new PictureProcess(url, cached, preloaderService);
-	    processes.Add(url, process.OnDispose(() => processes.Remove(url)));
-	    return process;
+            var process = new PictureProcess(url, cached, preloaderService);
+            processes.Add(url, process.OnDispose(() => processes.Remove(url)));
+            return process;
         }
     }
 }
